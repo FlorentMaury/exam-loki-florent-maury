@@ -74,7 +74,25 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
+    const Product = require('../models/Product');
     const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+    // Decrement stock for each item.
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const product = await Product.findById(item.productId);
+      
+      if (!product) {
+        return res.status(404).json({ message: `Product ${item.productId} not found.` });
+      }
+
+      if (product.stock < item.quantity) {
+        return res.status(400).json({ message: `Insufficient stock for product ${product.name}.` });
+      }
+
+      product.stock -= item.quantity;
+      await product.save();
+    }
 
     const newOrder = new Order({
       userId,

@@ -6,6 +6,7 @@ const Admin = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stockUpdates, setStockUpdates] = useState({});
+  const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -13,32 +14,42 @@ const Admin = () => {
 
   const fetchData = async () => {
     try {
-      const productsResponse = await getProducts();
-      setProducts(productsResponse.data);
+      const response = await getProducts();
+      setProducts(response.data);
       setLoading(false);
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
+      alert("Erreur lors du chargement des produits.");
       setLoading(false);
     }
   };
 
-  const handleStockUpdate = async (productId, newStock) => {
-    if (newStock < 0) {
-      alert("Le stock ne peut pas être négatif.");
+  const handleStockUpdate = async (productId) => {
+    const displayStock = stockUpdates[productId];
+    
+    if (displayStock === undefined || displayStock === null || displayStock < 0) {
+      alert("Le stock doit être un nombre valide positif.");
       return;
     }
+
+    setUpdating(productId);
     try {
-      await updateProductStock(productId, newStock);
+      await updateProductStock(productId, parseInt(displayStock));
+      
+      // Mise à jour de l'état local
       setProducts(
         products.map((p) =>
-          p._id === productId ? { ...p, stock: newStock } : p
+          p._id === productId ? { ...p, stock: parseInt(displayStock) } : p
         )
       );
-      setStockUpdates({ ...stockUpdates, [productId]: products.find(p => p._id === productId).stock });
+      
+      setStockUpdates({ ...stockUpdates, [productId]: undefined });
       alert("Stock mis à jour avec succès.");
     } catch (error) {
       console.error("Erreur lors de la mise à jour du stock:", error);
       alert("Erreur lors de la mise à jour du stock.");
+    } finally {
+      setUpdating(null);
     }
   };
 
@@ -82,6 +93,7 @@ const Admin = () => {
                           <button
                             onClick={() => handleStockChange(product._id, -1)}
                             className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 font-bold text-lg"
+                            disabled={updating === product._id}
                           >
                             −
                           </button>
@@ -91,6 +103,7 @@ const Admin = () => {
                           <button
                             onClick={() => handleStockChange(product._id, 1)}
                             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-bold text-lg"
+                            disabled={updating === product._id}
                           >
                             +
                           </button>
@@ -98,15 +111,11 @@ const Admin = () => {
                       </td>
                       <td className="border p-3 text-center">
                         <button
-                          onClick={() =>
-                            handleStockUpdate(
-                              product._id,
-                              displayStock
-                            )
-                          }
-                          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 font-semibold"
+                          onClick={() => handleStockUpdate(product._id)}
+                          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 font-semibold disabled:bg-gray-400"
+                          disabled={updating === product._id}
                         >
-                          Mettre à jour
+                          {updating === product._id ? "Mise à jour..." : "Mettre à jour"}
                         </button>
                       </td>
                     </tr>
