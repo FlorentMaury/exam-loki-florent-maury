@@ -55,7 +55,7 @@ const Order = () => {
           quantity: item.quantity,
           price: item.price,
         })),
-        total: cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
+        totalPrice: cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
         shippingAddress,
         paymentMethod,
         shippingMethod,
