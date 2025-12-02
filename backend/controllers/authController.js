@@ -6,6 +6,8 @@ const validator = require('validator');
 require('dotenv').config();
 const axios = require('axios');
 const authLog = require('debug')('authRoutes:console');
+const logger = require('../config/logger');
+const { auditLog, securityLog } = require('../config/audit');
 
 // Validation de la connexion sécurisée.
 exports.login = async (req, res) => {
@@ -49,15 +51,17 @@ exports.login = async (req, res) => {
     
     // Sécurité: Message générique en cas d'erreur.
     if (!isMatch) {
+      securityLog('LOGIN_FAILED', user._id, `Tentative de connexion échouée pour ${sanitizedUsername}`);
       return res.status(401).json({ message: 'Identifiants invalides.' });
     }
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
     authLog(`Connexion réussie pour ${sanitizedUsername}`);
+    auditLog('LOGIN', user._id, { username: sanitizedUsername }, 'success');
 
     res.json({ token, role: user.role, username: user.username });
   } catch (error) {
-    console.error('Erreur lors de la connexion.', error);
+    logger.error('Erreur lors de la connexion.', error);
     res.status(500).json({ message: 'Une erreur est survenue.' });
   }
 };

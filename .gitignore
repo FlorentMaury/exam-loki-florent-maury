@@ -12,6 +12,9 @@ docker-compose.override.yml
 
 # Logs
 *.log
+logs/
+backend/logs/
+*/logs/
 
 # IDE
 .vscode/

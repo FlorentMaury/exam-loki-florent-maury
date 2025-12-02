@@ -3,6 +3,8 @@ const axios = require('axios');
 const Order = require('../models/Order');
 const validator = require('validator');
 const orderLog = require('debug')('orderRoutes:console');
+const logger = require('../config/logger');
+const { auditLog } = require('../config/audit');
 
 // Validation: Création de commande sécurisée.
 exports.createOrder = async (req, res) => {
@@ -107,6 +109,7 @@ exports.createOrder = async (req, res) => {
     // Sauvegarde de la commande.
     const savedOrder = await newOrder.save();
     orderLog(`Commande créée avec succès: ${savedOrder._id}`);
+    auditLog('ORDER_CREATED', userId, { orderId: savedOrder._id, total, items: items.length }, 'success');
 
     // Notification du service de notification.
     try {
@@ -117,11 +120,13 @@ exports.createOrder = async (req, res) => {
       });
     } catch (error) {
       orderLog(`Erreur lors de l\'envoi de la notification: ${error.message}`);
+      logger.warn(`Notification échouée pour la commande ${savedOrder._id}`, error);
     }
 
     res.status(201).json({ message: 'Commande créée avec succès.', order: savedOrder });
   } catch (error) {
-    console.error('Erreur lors de la création de la commande.', error);
+    logger.error('Erreur lors de la création de la commande.', error);
+    auditLog('ORDER_CREATED', userId, { items: items.length }, 'failure');
     res.status(500).json({ message: 'Une erreur est survenue.' });
   }
 };

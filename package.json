@@ -10,7 +10,8 @@
     "update:all": "npm update && npm --prefix backend update && npm --prefix frontend update && npm --prefix gateway update && npm --prefix microservices/notifications update && npm --prefix microservices/stock-management update",
     "audit:all": "npm audit && npm --prefix backend audit && npm --prefix frontend audit && npm --prefix gateway audit && npm --prefix microservices/notifications audit && npm --prefix microservices/stock-management audit",
     "deploy:staging": "bash scripts/deploy-staging.sh",
-    "deploy:production": "bash scripts/deploy-production.sh"
+    "deploy:production": "bash scripts/deploy-production.sh",
+    "monitor:logs": "bash scripts/monitor-logs.sh"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"

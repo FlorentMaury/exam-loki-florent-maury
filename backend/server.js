@@ -3,11 +3,26 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 const connectDB = require('./config/db');
+const logger = require('./config/logger');
 
 const app = express();
 connectDB();
+
+// Créer le répertoire des logs s'il n'existe pas.
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir);
+}
+
+// Logging: Morgan pour les requêtes HTTP.
+const accessLogStream = fs.createWriteStream(path.join(logsDir, 'access.log'), { flags: 'a' });
+app.use(morgan('combined', { stream: accessLogStream }));
+app.use(morgan('dev')); // Affichage en console.
 
 // Sécurité: Headers HTTP avec Helmet.
 app.use(helmet());
