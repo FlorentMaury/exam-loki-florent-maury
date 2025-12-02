@@ -44,12 +44,12 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['Carte bancaire', 'PayPal', 'Virement'],
+      enum: ['Carte bancaire', 'PayPal', 'Virement bancaire', 'Crypto-monnaie'],
       required: true,
     },
     shippingMethod: {
       type: String,
-      enum: ['colissimo', 'chronopost'],
+      enum: ['Express', 'Standard', 'Économique', 'Retrait'],
       required: true,
     },
     createdAt: {
