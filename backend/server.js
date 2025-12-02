@@ -12,11 +12,32 @@ connectDB();
 // Sécurité: Headers HTTP avec Helmet.
 app.use(helmet());
 
-// Sécurité: CORS restrictif.
+// Sécurité: CORS flexible pour production et développement.
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Liste des origines autorisées.
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://frontend:3000',
+      'https://exam-loki-florent-maury.vercel.app',
+      'https://exam-loki-florent-maury-eiuv5qnn7-florentmaurys-projects.vercel.app',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+
+    // En développement, accepter les requêtes sans origine.
+    if (!origin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // En production, vérifier l'origine.
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS non autorisé pour cette origine.'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
