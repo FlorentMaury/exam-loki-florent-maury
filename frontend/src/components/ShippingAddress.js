@@ -42,7 +42,7 @@ const ShippingAddress = () => {
       <div className="space-y-2">
         <div>
           <label htmlFor="street" className="block text-sm font-medium text-gray-700">
-            Rue
+            Rue (5-100 caractères)
           </label>
           <input 
             type="text" 
@@ -50,12 +50,14 @@ const ShippingAddress = () => {
             name="street" 
             value={street} 
             onChange={handleAddressChange} 
+            placeholder="Ex: 123 Rue de la Paix"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
+          <p className="text-xs text-gray-500 mt-1">{street.length}/100 caractères</p>
         </div>
         <div>
           <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-            Ville
+            Ville (2-50 caractères)
           </label>
           <input 
             type="text" 
@@ -63,12 +65,14 @@ const ShippingAddress = () => {
             name="city" 
             value={city} 
             onChange={handleAddressChange} 
+            placeholder="Ex: Paris"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
+          <p className="text-xs text-gray-500 mt-1">{city.length}/50 caractères</p>
         </div>
         <div>
           <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-            Code Postal
+            Code Postal (3-20 caractères)
           </label>
           <input 
             type="text" 
@@ -76,12 +80,14 @@ const ShippingAddress = () => {
             name="postalCode" 
             value={postalCode} 
             onChange={handleAddressChange} 
+            placeholder="Ex: 75001"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
+          <p className="text-xs text-gray-500 mt-1">{postalCode.length}/20 caractères</p>
         </div>
         <div>
           <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-            Pays
+            Pays (2-50 caractères)
           </label>
           <input 
             type="text" 
@@ -89,8 +95,10 @@ const ShippingAddress = () => {
             name="country" 
             value={country} 
             onChange={handleAddressChange} 
+            placeholder="Ex: France"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
+          <p className="text-xs text-gray-500 mt-1">{country.length}/50 caractères</p>
         </div>
       </div>
     </div>

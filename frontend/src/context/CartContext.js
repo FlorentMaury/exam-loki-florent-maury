@@ -56,8 +56,8 @@ export const CartProvider = ({ children }) => {
 
   const [cartState, dispatch] = useReducer(cartReducer, {
     cart: [],
-    shippingMethod: null,
-    paymentMethod: null,
+    shippingMethod: 'Standard',
+    paymentMethod: 'Carte bancaire',
     shippingAddress: {
       street: "",
       city: "",

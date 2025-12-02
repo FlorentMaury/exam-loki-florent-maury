@@ -18,7 +18,7 @@ const PaymentMethodSelection = () => {
       <label htmlFor="payment" className="block text-sm font-medium text-gray-700">
       Mode de paiement:
       </label>
-      <select id="payment" value={paymentMethod} 
+      <select id="payment" value={paymentMethod || 'Carte bancaire'} 
       onChange={handlePaymentChange}
       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
       >
