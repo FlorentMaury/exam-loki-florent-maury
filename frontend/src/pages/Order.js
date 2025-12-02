@@ -55,24 +55,28 @@ const Order = () => {
           quantity: item.quantity,
           price: item.price,
         })),
-        totalPrice: cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
         shippingAddress,
         paymentMethod,
         shippingMethod,
       };
 
+      console.log('Sending order:', orderDetails);
       const response = await createOrder(orderDetails);
 
-      if (response.error) {
-        alert(`Erreur : ${response.message || "Échec de la commande"}`);
+      console.log('Order response:', response);
+      
+      if (response.status !== 201) {
+        alert(`Erreur : ${response.data?.message || "Échec de la commande"}`);
         return;
       }
 
       dispatch({ type: "CLEAR_CART" });
       alert("Commande confirmée avec succès !");
+      navigate("/");
     } catch (error) {
       console.error("Erreur lors de la commande", error);
-      alert("Une erreur technique est survenue. Veuillez réessayer.");
+      const errorMessage = error.response?.data?.message || error.message || "Une erreur technique est survenue";
+      alert(`Erreur : ${errorMessage}`);
     }
   };
 

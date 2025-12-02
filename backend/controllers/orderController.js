@@ -1,6 +1,7 @@
 // backend/controllers/orderController.js
 const axios = require('axios');
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 const validator = require('validator');
 const logger = require('../config/logger');
 const { auditLog } = require('../config/audit');
@@ -10,13 +11,17 @@ exports.createOrder = async (req, res) => {
   const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
   const userId = req.user.userId;
 
+  logger.info(`Creating order for user ${userId}`, { items: items?.length });
+
   // Validate user ID.
-  if (!validator.isMongoId(userId)) {
+  if (!userId || !validator.isMongoId(userId)) {
+    logger.warn('Invalid user ID for order creation');
     return res.status(400).json({ message: 'Invalid user data.' });
   }
 
   // Validate items array.
   if (!Array.isArray(items) || items.length === 0) {
+    logger.warn(`Invalid items for order - got: ${JSON.stringify(items)}`);
     return res.status(400).json({ message: 'Order must contain at least one item.' });
   }
 
@@ -30,52 +35,61 @@ exports.createOrder = async (req, res) => {
     const item = items[i];
 
     if (!item.productId || !validator.isMongoId(item.productId)) {
+      logger.warn(`Invalid product ID in item: ${JSON.stringify(item)}`);
       return res.status(400).json({ message: 'Invalid product ID.' });
     }
 
     if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1000) {
+      logger.warn(`Invalid quantity for item ${item.productId}: ${item.quantity}`);
       return res.status(400).json({ message: 'Quantity must be a positive integer less than 1000.' });
     }
 
     if (typeof item.price !== 'number' || item.price < 0 || item.price > 1000000) {
+      logger.warn(`Invalid price for item ${item.productId}: ${item.price}`);
       return res.status(400).json({ message: 'Price must be a positive number less than 1000000.' });
     }
   }
 
   // Validate shipping address.
   if (!shippingAddress || typeof shippingAddress !== 'object') {
+    logger.warn('Invalid shipping address');
     return res.status(400).json({ message: 'Invalid shipping address.' });
   }
 
   const { street, city, postalCode, country } = shippingAddress;
 
   if (!street || !city || !postalCode || !country) {
+    logger.warn('Missing address fields');
     return res.status(400).json({ message: 'All address fields are required.' });
   }
 
   if (typeof street !== 'string' || typeof city !== 'string' || typeof postalCode !== 'string' || typeof country !== 'string') {
+    logger.warn('Invalid address field types');
     return res.status(400).json({ message: 'Invalid address format.' });
   }
 
   if (street.trim().length === 0 || city.trim().length === 0 || postalCode.trim().length === 0 || country.trim().length === 0) {
+    logger.warn('Empty address fields');
     return res.status(400).json({ message: 'Address fields cannot be empty.' });
   }
 
   // Validate payment method.
   const validPaymentMethods = ['Carte bancaire', 'PayPal', 'Virement bancaire', 'Crypto-monnaie'];
   if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
+    logger.warn(`Invalid payment method: ${paymentMethod}`);
     return res.status(400).json({ message: 'Invalid payment method.' });
   }
 
   // Validate shipping method.
   const validShippingMethods = ['Express', 'Standard', 'Économique', 'Retrait'];
   if (!shippingMethod || !validShippingMethods.includes(shippingMethod)) {
+    logger.warn(`Invalid shipping method: ${shippingMethod}`);
     return res.status(400).json({ message: 'Invalid shipping method.' });
   }
 
   try {
-    const Product = require('../models/Product');
     const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    logger.info(`Order total calculated: ${total}`);
 
     // Decrement stock for each item.
     for (let i = 0; i < items.length; i++) {
@@ -83,15 +97,18 @@ exports.createOrder = async (req, res) => {
       const product = await Product.findById(item.productId);
       
       if (!product) {
+        logger.warn(`Product not found: ${item.productId}`);
         return res.status(404).json({ message: `Product ${item.productId} not found.` });
       }
 
       if (product.stock < item.quantity) {
+        logger.warn(`Insufficient stock for product ${product.name}: have ${product.stock}, need ${item.quantity}`);
         return res.status(400).json({ message: `Insufficient stock for product ${product.name}.` });
       }
 
       product.stock -= item.quantity;
       await product.save();
+      logger.info(`Stock updated for product ${product.name}: new stock = ${product.stock}`);
     }
 
     const newOrder = new Order({
@@ -104,6 +121,7 @@ exports.createOrder = async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
+    logger.info(`Order created successfully: ${savedOrder._id}`);
     auditLog('ORDER_CREATED', userId, { orderId: savedOrder._id, total, items: items.length }, 'success');
 
     try {
