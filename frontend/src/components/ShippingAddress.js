@@ -3,10 +3,10 @@ import { useCart } from '../context/CartContext';
 
 const ShippingAddress = () => {
   const { shippingAddress, dispatch } = useCart();
-  const [street, setStreet] = useState(shippingAddress.street || '');
-  const [city, setCity] = useState(shippingAddress.city || '');
-  const [postalCode, setPostalCode] = useState(shippingAddress.postalCode || '');
-  const [country, setCountry] = useState(shippingAddress.country || '');
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('');
 
   const handleAddressChange = (event) => {
     const { name, value } = event.target;
@@ -53,7 +53,6 @@ const ShippingAddress = () => {
             placeholder="Ex: 123 Rue de la Paix"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
-          <p className="text-xs text-gray-500 mt-1">{street.length}/100 caractères</p>
         </div>
         <div>
           <label htmlFor="city" className="block text-sm font-medium text-gray-700">
@@ -68,7 +67,6 @@ const ShippingAddress = () => {
             placeholder="Ex: Paris"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
-          <p className="text-xs text-gray-500 mt-1">{city.length}/50 caractères</p>
         </div>
         <div>
           <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
@@ -83,7 +81,6 @@ const ShippingAddress = () => {
             placeholder="Ex: 75001"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
-          <p className="text-xs text-gray-500 mt-1">{postalCode.length}/20 caractères</p>
         </div>
         <div>
           <label htmlFor="country" className="block text-sm font-medium text-gray-700">
@@ -98,7 +95,6 @@ const ShippingAddress = () => {
             placeholder="Ex: France"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
           />
-          <p className="text-xs text-gray-500 mt-1">{country.length}/50 caractères</p>
         </div>
       </div>
     </div>
