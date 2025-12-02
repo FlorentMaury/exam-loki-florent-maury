@@ -1,6 +1,6 @@
 # Guide CI/CD - Automatisation du déploiement.
 
-## 🔄 Flux de déploiement automatisé.
+## Flux de déploiement automatisé.
 
 ### Staging (Préproduction).
 
@@ -20,7 +20,7 @@
   2. Vérification de la santé des services.
   3. Affichage des URLs d'accès.
 
-## 🚀 Lancer un déploiement.
+## Lancer un déploiement.
 
 ### Déploiement manuel en staging.
 
@@ -44,11 +44,11 @@ git push origin develop
 git push origin main
 ```
 
-## 📊 Suivi du déploiement.
+## Suivi du déploiement.
 
 Consultez l'onglet **Actions** dans votre dépôt GitHub pour voir l'état de chaque déploiement.
 
-## ✅ Fichiers de configuration créés.
+## Fichiers de configuration créés.
 
 - `.github/workflows/staging.yml` : Pipeline de déploiement en staging.
 - `.github/workflows/production.yml` : Pipeline de déploiement en production.
@@ -56,7 +56,7 @@ Consultez l'onglet **Actions** dans votre dépôt GitHub pour voir l'état de ch
 - `scripts/deploy-staging.sh` : Script local de déploiement en staging.
 - `scripts/deploy-production.sh` : Script local de déploiement en production.
 
-## ❌ Dépannage.
+## Dépannage.
 
 - **Erreur de construction Docker** : Vérifiez que les Dockerfiles sont valides.
 - **Erreur de démarrage des services** : Consultez les logs avec `docker-compose logs`.

@@ -1,6 +1,6 @@
 # Guide Journalisation & Audit.
 
-## 📊 Système de logging configuré.
+## Système de logging configuré.
 
 ### Fichiers de logs.
 
@@ -17,25 +17,25 @@ Tous les logs sont stockés dans `backend/logs/` :
 - **`info`** : Informations importantes (connexions réussies, commandes créées).
 - **`debug`** : Informations de débogage (développement).
 
-## 🔐 Actions auditées.
+## Actions auditées.
 
 ### Authentification.
 
-- ✅ Connexion réussie (`LOGIN` / `success`).
-- ❌ Tentative de connexion échouée (`LOGIN_FAILED`).
-- 📝 Inscription réussie (`REGISTER`).
+- Connexion réussie (`LOGIN` / `success`).
+- Tentative de connexion échouée (`LOGIN_FAILED`).
+- Inscription réussie (`REGISTER`).
 
 ### Commandes.
 
-- ✅ Création de commande (`ORDER_CREATED` / `success`).
-- ❌ Erreur lors de la création (`ORDER_CREATED` / `failure`).
+- Création de commande (`ORDER_CREATED` / `success`).
+- Erreur lors de la création (`ORDER_CREATED` / `failure`).
 
 ### Sécurité.
 
-- ⚠️ Tentative d'accès non autorisé (`UNAUTHORIZED`).
-- 🚨 Événements de sécurité (`SECURITY`).
+- Tentative d'accès non autorisé (`UNAUTHORIZED`).
+- Événements de sécurité (`SECURITY`).
 
-## 📈 Surveillance des logs.
+## Surveillance des logs.
 
 ### En développement (Docker local).
 
@@ -60,7 +60,7 @@ tail -f backend/logs/combined.log
 bash scripts/monitor-logs.sh
 ```
 
-## 🎯 Structure des logs d'audit.
+## Structure des logs d'audit.
 
 Chaque entrée d'audit contient :
 
@@ -79,7 +79,7 @@ Chaque entrée d'audit contient :
 }
 ```
 
-## 🔧 Configuration des logs.
+## Configuration des logs.
 
 Modifier le fichier `backend/config/logger.js` pour :
 
@@ -87,7 +87,7 @@ Modifier le fichier `backend/config/logger.js` pour :
 - Ajouter de nouveaux transports (ex: Sentry, ELK).
 - Modifier le format des logs.
 
-## 📊 Staging vs Production.
+## Staging vs Production.
 
 ### Staging.
 
@@ -102,7 +102,7 @@ Modifier le fichier `backend/config/logger.js` pour :
 - Niveau recommandé : `warn` ou `error`.
 - À intégrer avec Sentry ou ELK pour une meilleure surveillance.
 
-## 🚀 Exemple de flux d'audit.
+## Exemple de flux d'audit.
 
 ```bash
 # User se connecte.
@@ -116,7 +116,7 @@ Modifier le fichier `backend/config/logger.js` pour :
 2025-12-02 12:26:45 [info]: [AUDIT] Action: ORDER_CREATED | User: 692ec706806effa81fd433b2 | Status: failure
 ```
 
-## ✅ Contrôles d'audit effectués.
+## Contrôles d'audit effectués.
 
 - Qui a fait quoi (`userId`, `action`).
 - Quand (`timestamp`).
