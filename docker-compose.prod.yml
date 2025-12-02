@@ -1,0 +1,166 @@
+version: '3.8'
+
+# Configuration Docker Compose pour la production.
+services:
+  # Base de données MongoDB en production.
+  mongo:
+    image: mongo:7-alpine
+    container_name: exam_mongo_prod
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: exam_production
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-secure-password}
+    volumes:
+      - mongo_data_prod:/data/db
+      - mongo_config_prod:/data/configdb
+      - mongo_backup_prod:/backup
+    networks:
+      - exam_network_prod
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test -u ${MONGO_USER:-admin} -p ${MONGO_PASSWORD:-secure-password} --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backend Express en production.
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: exam_backend_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-secure-password}@mongo:27017/exam_production
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      REACT_APP_API_URL: ${REACT_APP_API_URL}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - exam_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend React avec Nginx en production.
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: exam_frontend_prod
+    restart: always
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL}
+    depends_on:
+      - backend
+    networks:
+      - exam_network_prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Microservice Notifications en production.
+  notifications:
+    build:
+      context: ./microservices/notifications
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_notifications_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    depends_on:
+      - backend
+    networks:
+      - exam_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Microservice Stock Management en production.
+  stock-management:
+    build:
+      context: ./microservices/stock-management
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_stock_management_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    depends_on:
+      - backend
+    networks:
+      - exam_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Gateway en production.
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_gateway_prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+    depends_on:
+      - backend
+      - notifications
+      - stock-management
+    networks:
+      - exam_network_prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mongo_data_prod:
+    driver: local
+  mongo_config_prod:
+    driver: local
+  mongo_backup_prod:
+    driver: local
+
+networks:
+  exam_network_prod:
+    driver: bridge

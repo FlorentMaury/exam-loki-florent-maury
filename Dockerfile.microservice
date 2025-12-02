@@ -1,0 +1,23 @@
+# Dockerfile pour les microservices (notifications et stock-management).
+FROM node:20-alpine
+
+# Définir le répertoire de travail.
+WORKDIR /app/microservice
+
+# Copier les fichiers package.
+COPY package*.json ./
+
+# Installer les dépendances uniquement de production.
+RUN npm ci --only=production
+
+# Copier le code source.
+COPY . .
+
+# Exposition du port par défaut.
+EXPOSE 4000
+
+# Variable d'environnement pour le mode production.
+ENV NODE_ENV=production
+
+# Commande de démarrage flexible.
+CMD ["node", "index.js"]

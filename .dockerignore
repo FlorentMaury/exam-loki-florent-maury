@@ -1,0 +1,22 @@
+# Ignorer les fichiers et dossiers locaux pour Docker.
+node_modules/
+.git/
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.next/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.cache/
+.vuepress/dist/
+docker-compose.override.yml

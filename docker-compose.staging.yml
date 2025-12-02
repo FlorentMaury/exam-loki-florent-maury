@@ -1,0 +1,123 @@
+version: '3.8'
+
+# Configuration Docker Compose pour la préproduction.
+services:
+  # Base de données MongoDB.
+  mongo:
+    image: mongo:7-alpine
+    container_name: exam_mongo_preprod
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: exam_preprod
+    volumes:
+      - mongo_data_preprod:/data/db
+      - mongo_config_preprod:/data/configdb
+    networks:
+      - exam_network_preprod
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend Express.
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: exam_backend_preprod
+    ports:
+      - '5000:5000'
+    environment:
+      NODE_ENV: staging
+      MONGO_URI: mongodb://mongo:27017/exam_preprod
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+      FRONTEND_URL: http://frontend:3000
+      REACT_APP_API_URL: http://localhost:5000/api
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - exam_network_preprod
+    volumes:
+      - ./backend:/app/backend
+    restart: unless-stopped
+
+  # Frontend React avec Nginx.
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: exam_frontend_preprod
+    ports:
+      - '3000:3000'
+    environment:
+      REACT_APP_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - exam_network_preprod
+    restart: unless-stopped
+
+  # Microservice Notifications.
+  notifications:
+    build:
+      context: ./microservices/notifications
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_notifications_preprod
+    ports:
+      - '4002:4000'
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+    depends_on:
+      - backend
+    networks:
+      - exam_network_preprod
+    restart: unless-stopped
+
+  # Microservice Stock Management.
+  stock-management:
+    build:
+      context: ./microservices/stock-management
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_stock_management_preprod
+    ports:
+      - '4003:4000'
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+    depends_on:
+      - backend
+    networks:
+      - exam_network_preprod
+    restart: unless-stopped
+
+  # Gateway.
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: ../Dockerfile.microservice
+    container_name: exam_gateway_preprod
+    ports:
+      - '8000:4000'
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+    depends_on:
+      - backend
+      - notifications
+      - stock-management
+    networks:
+      - exam_network_preprod
+    restart: unless-stopped
+
+volumes:
+  mongo_data_preprod:
+  mongo_config_preprod:
+
+networks:
+  exam_network_preprod:
+    driver: bridge
