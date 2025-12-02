@@ -1,4 +1,5 @@
 // controllers/productController.js
+const axios = require('axios');
 const Product = require('../models/Product');
 const validator = require('validator');
 const logger = require('../config/logger');
@@ -52,6 +53,17 @@ exports.updateProductStock = async (req, res) => {
     product.updatedAt = Date.now();
 
     await product.save();
+
+    // Notify stock management service.
+    try {
+      await axios.post('http://localhost:8000/update-stock', {
+        productId,
+        quantity: stock,
+        productName: product.name,
+      });
+    } catch (error) {
+      logger.warn('Stock management notification failed.', error);
+    }
 
     res.json({ message: 'Stock updated successfully.', product });
   } catch (error) {
