@@ -1,13 +1,29 @@
+// Stock management service.
 const express = require('express');
+const validator = require('validator');
 const app = express();
-const PORT = 4003;
+const PORT = process.env.STOCK_PORT || 4003;
 
 app.use(express.json());
 
+// Update product stock.
 app.post('/update-stock', (req, res) => {
-    const { productId, quantity } = req.body;
-    console.log(`Mise à jour du stock: Produit ${productId}, Quantité ${quantity}`);
-    res.send(`Stock mis à jour pour le produit de ID : ${productId}`);
+  const { productId, quantity } = req.body;
+
+  // Validate product ID.
+  if (!productId || !validator.isMongoId(productId)) {
+    return res.status(400).json({ message: 'Invalid product ID.' });
+  }
+
+  // Validate quantity.
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return res.status(400).json({ message: 'Quantity must be a positive integer.' });
+  }
+
+  res.json({ message: 'Stock updated successfully.', productId, quantity });
 });
 
-app.listen(PORT, () => console.log(`Service de gestion des stocks sur le port ${PORT}`));
+// Start stock management service.
+app.listen(PORT, () => {
+  console.log(`Stock management service listening on port ${PORT}`);
+});

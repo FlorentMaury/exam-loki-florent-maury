@@ -1,31 +1,29 @@
-// notifi/server.js
+// Notification service.
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
-require('dotenv').config()
-//console.log(`process evn is ${JSON.stringify(process.env)}`)
+require('dotenv').config();
 
 const app = express();
 app.use(bodyParser.json());
 
-// Configuration de Nodemailer
+// Configure Nodemailer transporter.
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, // Adresse Gmail
-    pass: process.env.EMAIL_APPLICATION_PASSWORD, // Mot de passe spécifique à l'application
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_APPLICATION_PASSWORD,
   },
 });
 
-console.log(`rocess.env.EMAIL_USER is ${process.env.EMAIL_USER} process.env.EMAIL_APPLICATION_PASSWORD is ${process.env.EMAIL_APPLICATION_PASSWORD}`);
-// Route pour envoyer un email
+// Send email notification.
 app.post('/notify', async (req, res) => {
   const { to, subject, text } = req.body;
-  console.log(`to is ${to} subject is ${subject} text is ${text}`)
 
-  //const { message } = req.body;
-    //console.log(`Notification: ${text}`);
-    //res.send('Notification envoyée mail');
+  // Validate required fields.
+  if (!to || !subject || !text) {
+    return res.status(400).json({ message: 'Email, subject, and text are required.' });
+  }
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -36,16 +34,15 @@ app.post('/notify', async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Email envoyé avec succès');
-    return res.status(200).json({ message: 'Email envoyé avec succès.' });
+    return res.status(200).json({ message: 'Email sent successfully.' });
   } catch (error) {
-    console.error('Erreur lors de l\'envoi de l\'email', error);
-    return res.status(500).json({ message: 'Erreur lors de l\'envoi de l\'email.', error });
+    console.error('Email sending error.', error);
+    return res.status(500).json({ message: 'Error sending email.', error });
   }
 });
 
-// Lancer le service Notification
+// Start notification service.
 const PORT = process.env.NOTIFI_PORT || 4002;
 app.listen(PORT, () => {
-  console.log(`Service de notification en écoute sur le port ${PORT}`);
+  console.log(`Notification service listening on port ${PORT}`);
 });

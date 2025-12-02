@@ -1,64 +1,61 @@
 // controllers/productController.js
 const Product = require('../models/Product');
 const validator = require('validator');
-const productLog = require('debug')('productRoutes:console');
+const logger = require('../config/logger');
 
-// Récupération de tous les produits.
+// Get all products.
 exports.getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
   } catch (error) {
-    console.error('Erreur lors de la récupération des produits.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error retrieving products.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Mise à jour du stock du produit sécurisée.
+// Update product stock.
 exports.updateProductStock = async (req, res) => {
   const { stock } = req.body;
   const { productId } = req.params;
 
-  // Sécurité: Validation de productId (MongoDB ID).
+  // Validate product ID.
   if (!productId || !validator.isMongoId(productId)) {
-    return res.status(400).json({ message: 'Identifiant produit invalide.' });
+    return res.status(400).json({ message: 'Invalid product ID.' });
   }
 
-  // Sécurité: Validation que stock est fourni.
+  // Validate stock is provided.
   if (stock === undefined || stock === null) {
-    return res.status(400).json({ message: 'Le stock est requis.' });
+    return res.status(400).json({ message: 'Stock is required.' });
   }
 
-  // Sécurité: Validation du type de stock (entier).
+  // Validate stock is an integer.
   if (!Number.isInteger(stock)) {
-    return res.status(400).json({ message: 'Le stock doit être un nombre entier.' });
+    return res.status(400).json({ message: 'Stock must be an integer.' });
   }
 
-  // Sécurité: Validation que le stock est positif et inférieur au maximum.
+  // Validate stock range.
   if (stock < 0 || stock > 1000000) {
-    return res.status(400).json({ message: 'Le stock doit être entre 0 et 1000000.' });
+    return res.status(400).json({ message: 'Stock must be between 0 and 1000000.' });
   }
 
   try {
-    // Recherche du produit.
     const product = await Product.findById(productId);
 
-    // Sécurité: Vérifier que le produit existe.
+    // Check if product exists.
     if (!product) {
-      return res.status(404).json({ message: 'Produit non trouvé.' });
+      return res.status(404).json({ message: 'Product not found.' });
     }
 
-    // Mise à jour du stock.
+    // Update stock.
     product.stock = stock;
     product.updatedAt = Date.now();
 
-    // Sauvegarde du produit.
     await product.save();
 
-    productLog(`Stock du produit mis à jour: ${productId} -> ${stock}`);
-    res.json({ message: 'Stock mis à jour avec succès.', product });
+    res.json({ message: 'Stock updated successfully.', product });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du stock.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error updating stock.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };

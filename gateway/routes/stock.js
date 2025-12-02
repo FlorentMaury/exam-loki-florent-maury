@@ -1,7 +1,8 @@
-// gateway/routes/stock.js
+// Proxy to stock management service.
 const express = require('express');
 const proxy = require('express-http-proxy');
 require('dotenv').config();
+
 const router = express.Router();
 
 const STOCK_SERVICE_URL = process.env.STOCK_SERVICE_URL;

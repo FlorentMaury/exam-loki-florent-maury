@@ -1,7 +1,7 @@
-// backend/config/audit.js
+// Audit logging configuration.
 const logger = require('./logger');
 
-// Logger les actions audit importantes.
+// Log important audit actions.
 const auditLog = (action, userId, details, status = 'success') => {
   logger.info(`[AUDIT] Action: ${action} | User: ${userId} | Status: ${status}`, {
     action,
@@ -12,7 +12,7 @@ const auditLog = (action, userId, details, status = 'success') => {
   });
 };
 
-// Logger les erreurs de sécurité.
+// Log security events.
 const securityLog = (event, userId, message) => {
   logger.warn(`[SECURITY] Event: ${event} | User: ${userId}`, {
     event,
@@ -22,7 +22,7 @@ const securityLog = (event, userId, message) => {
   });
 };
 
-// Logger les accès non autorisés.
+// Log unauthorized access attempts.
 const unauthorizedLog = (userId, resource, reason) => {
   logger.warn(`[UNAUTHORIZED] User: ${userId} | Resource: ${resource} | Reason: ${reason}`, {
     userId,

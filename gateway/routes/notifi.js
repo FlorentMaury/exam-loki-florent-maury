@@ -1,4 +1,4 @@
-// gateway/routes/notifi.js
+// Proxy to notification service.
 const express = require('express');
 const proxy = require('express-http-proxy');
 require('dotenv').config();

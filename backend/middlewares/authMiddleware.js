@@ -1,13 +1,12 @@
-// backend/middlewares/authMiddleware.js
+// Authentication middleware.
 const jwt = require('jsonwebtoken');
 
-// Middleware d'authentification sécurisé.
+// Verify JWT token.
 exports.authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
 
-  // Sécurité: Vérifier la présence du token.
   if (!token) {
-    return res.status(401).json({ message: 'Token manquant.' });
+    return res.status(401).json({ message: 'Missing token.' });
   }
 
   try {
@@ -15,13 +14,14 @@ exports.authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    console.error('Erreur de vérification du token.', error);
-    // Sécurité: Message générique pour éviter l'exposition d'informations.
-    return res.status(403).json({ message: 'Token invalide.' });
+    return res.status(403).json({ message: 'Invalid token.' });
   }
 };
 
+// Check if user is admin.
 exports.isAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Accès interdit.' });
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied.' });
+  }
   next();
 };

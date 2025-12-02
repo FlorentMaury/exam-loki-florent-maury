@@ -4,153 +4,119 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const validator = require('validator');
 require('dotenv').config();
-const axios = require('axios');
-const authLog = require('debug')('authRoutes:console');
 const logger = require('../config/logger');
 const { auditLog, securityLog } = require('../config/audit');
 
-// Validation de la connexion sécurisée.
+// Login handler.
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
-  // Sécurité: Validation des champs vides.
+  // Validate required fields.
   if (!username || !password) {
-    return res.status(400).json({ message: 'Identifiants invalides.' });
+    return res.status(400).json({ message: 'Invalid credentials.' });
   }
 
-  // Sécurité: Validation du type de données.
+  // Validate data types.
   if (typeof username !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ message: 'Identifiants invalides.' });
+    return res.status(400).json({ message: 'Invalid credentials.' });
   }
 
-  // Sécurité: Validation de la longueur minimale.
-  if (username.length < 3 || password.length < 8) {
-    return res.status(400).json({ message: 'Identifiants invalides.' });
+  // Validate field lengths.
+  if (username.length < 3 || username.length > 50 || password.length < 8 || password.length > 128) {
+    return res.status(400).json({ message: 'Invalid credentials.' });
   }
 
-  // Sécurité: Validation de la longueur maximale.
-  if (username.length > 50 || password.length > 128) {
-    return res.status(400).json({ message: 'Identifiants invalides.' });
-  }
-
-  // Sécurité: Sanitization - suppression des espaces.
   const sanitizedUsername = username.trim();
   const sanitizedPassword = password.trim();
-
-  authLog(`Tentative de connexion pour ${sanitizedUsername}`);
 
   try {
     const user = await User.findOne({ username: sanitizedUsername });
     
-    // Sécurité: Message générique pour éviter l'énumération d'utilisateurs.
+    // Generic message to prevent user enumeration.
     if (!user) {
-      return res.status(401).json({ message: 'Identifiants invalides.' });
+      return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
     const isMatch = await bcrypt.compare(sanitizedPassword, user.password);
     
-    // Sécurité: Message générique en cas d'erreur.
     if (!isMatch) {
-      securityLog('LOGIN_FAILED', user._id, `Tentative de connexion échouée pour ${sanitizedUsername}`);
-      return res.status(401).json({ message: 'Identifiants invalides.' });
+      securityLog('LOGIN_FAILED', user._id, `Failed login attempt for ${sanitizedUsername}`);
+      return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    authLog(`Connexion réussie pour ${sanitizedUsername}`);
     auditLog('LOGIN', user._id, { username: sanitizedUsername }, 'success');
 
     res.json({ token, role: user.role, username: user.username });
   } catch (error) {
-    logger.error('Erreur lors de la connexion.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Login error.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation de l'inscription sécurisée.
+// Registration handler.
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
 
-  // Sécurité: Validation des champs vides.
+  // Validate required fields.
   if (!username || !email || !password) {
-    return res.status(400).json({ message: 'Tous les champs sont requis.' });
+    return res.status(400).json({ message: 'All fields are required.' });
   }
 
-  // Sécurité: Validation du type de données.
+  // Validate data types.
   if (typeof username !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ message: 'Format de données invalide.' });
+    return res.status(400).json({ message: 'Invalid data format.' });
   }
 
-  // Sécurité: Sanitization - suppression des espaces et conversion en minuscules.
   const sanitizedUsername = username.trim();
   const sanitizedEmail = email.trim().toLowerCase();
   const sanitizedPassword = password.trim();
 
-  // Sécurité: Validation du format email.
+  // Validate email format.
   if (!validator.isEmail(sanitizedEmail)) {
-    return res.status(400).json({ message: 'Format d\'email invalide.' });
+    return res.status(400).json({ message: 'Invalid email format.' });
   }
 
-  // Sécurité: Validation de la longueur du nom d'utilisateur.
+  // Validate username length.
   if (sanitizedUsername.length < 3 || sanitizedUsername.length > 50) {
-    return res.status(400).json({ message: 'Le nom d\'utilisateur doit contenir entre 3 et 50 caractères.' });
+    return res.status(400).json({ message: 'Username must be between 3 and 50 characters.' });
   }
 
-  // Sécurité: Validation du nom d'utilisateur (caractères alphanumériques et underscores uniquement).
+  // Validate username characters.
   if (!/^[a-zA-Z0-9_]+$/.test(sanitizedUsername)) {
-    return res.status(400).json({ message: 'Le nom d\'utilisateur ne peut contenir que des lettres, chiffres et underscores.' });
+    return res.status(400).json({ message: 'Username can only contain letters, numbers, and underscores.' });
   }
 
-  // Sécurité: Validation de la longueur du mot de passe.
+  // Validate password length.
   if (sanitizedPassword.length < 8 || sanitizedPassword.length > 128) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir entre 8 et 128 caractères.' });
+    return res.status(400).json({ message: 'Password must be between 8 and 128 characters.' });
   }
 
-  // Sécurité: Validation de la complexité du mot de passe (au moins une majuscule, minuscule et chiffre).
+  // Validate password complexity.
   if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(sanitizedPassword)) {
-    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre.' });
+    return res.status(400).json({ message: 'Password must contain uppercase, lowercase, and numbers.' });
   }
-
-  authLog(`Tentative d'inscription pour ${sanitizedEmail}`);
 
   try {
-    // Vérifier si l'email existe déjà.
+    // Check if email already exists.
     const existingEmail = await User.findOne({ email: sanitizedEmail });
-    
     if (existingEmail) {
-      authLog(`Email ${sanitizedEmail} déjà utilisé`);
-      return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+      return res.status(400).json({ message: 'This email is already in use.' });
     }
 
-    // Vérifier si le nom d'utilisateur existe déjà.
+    // Check if username already exists.
     const existingUsername = await User.findOne({ username: sanitizedUsername });
-    
     if (existingUsername) {
-      authLog(`Nom d'utilisateur ${sanitizedUsername} déjà utilisé`);
-      return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà utilisé.' });
+      return res.status(400).json({ message: 'This username is already in use.' });
     }
 
-    // Créer un nouvel utilisateur.
+    // Create new user.
     const user = new User({ username: sanitizedUsername, email: sanitizedEmail, password: sanitizedPassword });
     await user.save();
 
-    authLog(`Inscription réussie pour ${sanitizedEmail}`);
-
-    // Envoyer un email de bienvenue
-    // await sendEmail(
-    //   email,
-    //   'Bienvenue dans notre application',
-    //   `Bonjour ${username},\n\nMerci de vous être inscrit. Nous sommes ravis de vous accueillir !`
-    // );
-
-    // await axios.post('http://localhost:4002/notify', {
-    //   to: email,
-    //   subject: 'Bienvenue dans notre application',
-    //   text: `Bonjour ${username},\n\nMerci de vous être inscrit. Nous sommes ravis de vous accueillir !`,
-    // });
-
-    res.status(201).json({ message: 'Utilisateur créé avec succès.' });
+    res.status(201).json({ message: 'User created successfully.' });
   } catch (error) {
-    console.error('Erreur lors de l\'inscription', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Registration error.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };

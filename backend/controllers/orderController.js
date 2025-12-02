@@ -2,89 +2,80 @@
 const axios = require('axios');
 const Order = require('../models/Order');
 const validator = require('validator');
-const orderLog = require('debug')('orderRoutes:console');
 const logger = require('../config/logger');
 const { auditLog } = require('../config/audit');
 
-// Validation: Création de commande sécurisée.
+// Create order.
 exports.createOrder = async (req, res) => {
   const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
   const userId = req.user.userId;
 
-  // Sécurité: Validation du userId (MongoDB ID).
+  // Validate user ID.
   if (!validator.isMongoId(userId)) {
-    return res.status(400).json({ message: 'Données utilisateur invalides.' });
+    return res.status(400).json({ message: 'Invalid user data.' });
   }
 
-  // Sécurité: Validation du tableau items.
+  // Validate items array.
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: 'La commande doit contenir au moins un article.' });
+    return res.status(400).json({ message: 'Order must contain at least one item.' });
   }
 
-  // Sécurité: Validation de la longueur du tableau items.
+  // Validate items array length.
   if (items.length > 100) {
-    return res.status(400).json({ message: 'Une commande ne peut pas contenir plus de 100 articles.' });
+    return res.status(400).json({ message: 'Order cannot contain more than 100 items.' });
   }
 
-  // Sécurité: Validation de chaque article du panier.
+  // Validate each item.
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
 
-    // Sécurité: Validation de productId (MongoDB ID).
     if (!item.productId || !validator.isMongoId(item.productId)) {
-      return res.status(400).json({ message: 'Identifiant produit invalide.' });
+      return res.status(400).json({ message: 'Invalid product ID.' });
     }
 
-    // Sécurité: Validation de quantity (nombre entier positif).
     if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 1000) {
-      return res.status(400).json({ message: 'La quantité doit être un entier positif et inférieur à 1000.' });
+      return res.status(400).json({ message: 'Quantity must be a positive integer less than 1000.' });
     }
 
-    // Sécurité: Validation de price (nombre décimal positif).
     if (typeof item.price !== 'number' || item.price < 0 || item.price > 1000000) {
-      return res.status(400).json({ message: 'Le prix doit être un nombre positif et inférieur à 1000000.' });
+      return res.status(400).json({ message: 'Price must be a positive number less than 1000000.' });
     }
   }
 
-  // Sécurité: Validation de shippingAddress.
+  // Validate shipping address.
   if (!shippingAddress || typeof shippingAddress !== 'object') {
-    return res.status(400).json({ message: 'Adresse de livraison invalide.' });
+    return res.status(400).json({ message: 'Invalid shipping address.' });
   }
 
   const { street, city, postalCode, country } = shippingAddress;
 
-  // Sécurité: Validation des champs de l'adresse.
   if (!street || !city || !postalCode || !country) {
-    return res.status(400).json({ message: 'Tous les champs de l\'adresse sont requis.' });
+    return res.status(400).json({ message: 'All address fields are required.' });
   }
 
-  // Sécurité: Validation du type des champs d'adresse.
   if (typeof street !== 'string' || typeof city !== 'string' || typeof postalCode !== 'string' || typeof country !== 'string') {
-    return res.status(400).json({ message: 'Format d\'adresse invalide.' });
+    return res.status(400).json({ message: 'Invalid address format.' });
   }
 
-  // Sécurité: Vérification que les champs d'adresse ne sont pas vides.
   if (street.trim().length === 0 || city.trim().length === 0 || postalCode.trim().length === 0 || country.trim().length === 0) {
-    return res.status(400).json({ message: 'Les champs de l\'adresse ne peuvent pas être vides.' });
+    return res.status(400).json({ message: 'Address fields cannot be empty.' });
   }
 
-  // Sécurité: Validation de paymentMethod (liste blanche).
+  // Validate payment method.
   const validPaymentMethods = ['Carte bancaire', 'PayPal', 'Virement bancaire', 'Crypto-monnaie'];
   if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
-    return res.status(400).json({ message: 'Méthode de paiement invalide.' });
+    return res.status(400).json({ message: 'Invalid payment method.' });
   }
 
-  // Sécurité: Validation de shippingMethod (liste blanche).
+  // Validate shipping method.
   const validShippingMethods = ['Express', 'Standard', 'Économique', 'Retrait'];
   if (!shippingMethod || !validShippingMethods.includes(shippingMethod)) {
-    return res.status(400).json({ message: 'Méthode de livraison invalide.' });
+    return res.status(400).json({ message: 'Invalid shipping method.' });
   }
 
   try {
-    // Calcul du total de la commande.
     const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-    // Création de la commande.
     const newOrder = new Order({
       userId,
       items,
@@ -94,104 +85,94 @@ exports.createOrder = async (req, res) => {
       shippingMethod,
     });
 
-    // Sauvegarde de la commande.
     const savedOrder = await newOrder.save();
-    orderLog(`Commande créée avec succès: ${savedOrder._id}`);
     auditLog('ORDER_CREATED', userId, { orderId: savedOrder._id, total, items: items.length }, 'success');
 
-    // Notification du service de notification.
     try {
       await axios.post('http://localhost:8000/notify', {
         to: 'syaob@yahoo.fr',
-        subject: 'Nouvelle Commande Créée',
-        text: `Une commande a été créée avec succès pour un total de ${total}€.`,
+        subject: 'New Order Created',
+        text: `An order has been successfully created for a total of ${total}.`,
       });
     } catch (error) {
-      orderLog(`Erreur lors de l\'envoi de la notification: ${error.message}`);
-      logger.warn(`Notification échouée pour la commande ${savedOrder._id}`, error);
+      logger.warn(`Notification failed for order ${savedOrder._id}`, error);
     }
 
-    res.status(201).json({ message: 'Commande créée avec succès.', order: savedOrder });
+    res.status(201).json({ message: 'Order created successfully.', order: savedOrder });
   } catch (error) {
-    logger.error('Erreur lors de la création de la commande.', error);
+    logger.error('Error creating order.', error);
     auditLog('ORDER_CREATED', userId, { items: items.length }, 'failure');
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Suppression de commande sécurisée.
+// Delete order.
 exports.deleteOrder = async (req, res) => {
   const { orderId } = req.body;
 
-  // Sécurité: Validation de orderId (MongoDB ID).
   if (!orderId || !validator.isMongoId(orderId)) {
-    return res.status(400).json({ message: 'Identifiant commande invalide.' });
+    return res.status(400).json({ message: 'Invalid order ID.' });
   }
 
   try {
     const order = await Order.findByIdAndDelete(orderId);
 
     if (!order) {
-      return res.status(404).json({ message: 'Commande non trouvée.' });
+      return res.status(404).json({ message: 'Order not found.' });
     }
 
-    orderLog(`Commande supprimée: ${orderId}`);
-    res.status(200).json({ message: 'Commande supprimée avec succès.' });
+    res.status(200).json({ message: 'Order deleted successfully.' });
   } catch (error) {
-    console.error('Erreur lors de la suppression de la commande.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error deleting order.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Récupération de toutes les commandes.
+// Get all orders.
 exports.getOrders = async (req, res) => {
   try {
     const orders = await Order.find();
     res.status(200).json(orders);
   } catch (error) {
-    console.error('Erreur lors de la récupération des commandes.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error retrieving orders.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Validation de commande sécurisée.
+// Validate order.
 exports.validateOrder = async (req, res) => {
   const { orderId } = req.body;
 
-  // Sécurité: Validation de orderId (MongoDB ID).
   if (!orderId || !validator.isMongoId(orderId)) {
-    return res.status(400).json({ message: 'Identifiant commande invalide.' });
+    return res.status(400).json({ message: 'Invalid order ID.' });
   }
 
   try {
     const order = await Order.findById(orderId);
 
     if (!order) {
-      return res.status(404).json({ message: 'Commande non trouvée.' });
+      return res.status(404).json({ message: 'Order not found.' });
     }
 
-    orderLog(`Commande validée: ${orderId}`);
-    res.status(200).json({ message: 'Commande validée avec succès.', order });
+    res.status(200).json({ message: 'Order validated successfully.', order });
   } catch (error) {
-    console.error('Erreur lors de la validation de la commande.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error validating order.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Mise à jour du statut de commande sécurisée.
+// Update order status.
 exports.updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
 
-  // Sécurité: Validation de orderId (MongoDB ID).
   if (!orderId || !validator.isMongoId(orderId)) {
-    return res.status(400).json({ message: 'Identifiant commande invalide.' });
+    return res.status(400).json({ message: 'Invalid order ID.' });
   }
 
-  // Sécurité: Validation de status (liste blanche).
   const validStatuses = ['En attente', 'Confirmée', 'Expédiée', 'Livrée', 'Annulée'];
   if (!status || typeof status !== 'string' || !validStatuses.includes(status)) {
-    return res.status(400).json({ message: 'Statut invalide.' });
+    return res.status(400).json({ message: 'Invalid status.' });
   }
 
   try {
@@ -202,18 +183,12 @@ exports.updateOrderStatus = async (req, res) => {
     );
 
     if (!order) {
-      return res.status(404).json({ message: 'Commande non trouvée.' });
+      return res.status(404).json({ message: 'Order not found.' });
     }
 
-    orderLog(`Statut de commande mis à jour: ${orderId} -> ${status}`);
-    res.status(200).json({ message: 'Statut mis à jour avec succès.', order });
+    res.status(200).json({ message: 'Status updated successfully.', order });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error updating order status.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
-
-
-// exports.createOrder = async (req, res) => {
-//     const products = req.body; // Attente d'un tableau d'objets { productId, quantity }
-//     console.log(`products are ${JSON.stringify(products)}`)

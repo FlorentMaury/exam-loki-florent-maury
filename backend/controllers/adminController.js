@@ -3,154 +3,137 @@ const axios = require('axios');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const validator = require('validator');
-const adminLog = require('debug')('adminRoutes:console');
+const logger = require('../config/logger');
 
-// Récupération de toutes les commandes.
+// Get all orders.
 exports.getOrders = async (req, res) => {
   try {
     const orders = await Order.find();
     res.json(orders);
   } catch (error) {
-    console.error('Erreur lors de la récupération des commandes.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error retrieving orders.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Mise à jour du statut de commande sécurisée.
+// Update order status.
 exports.updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  // Sécurité: Validation de id (MongoDB ID).
+  // Validate order ID.
   if (!id || !validator.isMongoId(id)) {
-    return res.status(400).json({ message: 'Identifiant commande invalide.' });
+    return res.status(400).json({ message: 'Invalid order ID.' });
   }
 
-  // Sécurité: Validation de status (liste blanche).
+  // Validate status.
   const validStatuses = ['En attente', 'Confirmée', 'Expédiée', 'Livrée', 'Annulée'];
   if (!status || typeof status !== 'string' || !validStatuses.includes(status)) {
-    return res.status(400).json({ message: 'Statut invalide.' });
+    return res.status(400).json({ message: 'Invalid status.' });
   }
 
   try {
     const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
 
-    // Sécurité: Vérifier que la commande existe.
     if (!order) {
-      return res.status(404).json({ message: 'Commande non trouvée.' });
+      return res.status(404).json({ message: 'Order not found.' });
     }
 
-    adminLog(`Statut de commande mis à jour: ${id} -> ${status}`);
-
-    // Notification du service.
     try {
       await axios.post('http://localhost:8000/notify', {
-        message: `Le statut de la commande ${id} a été mis à jour en "${status}".`,
+        message: `Order status ${id} has been updated to "${status}".`,
       });
     } catch (error) {
-      adminLog(`Erreur lors de l\'envoi de la notification: ${error.message}`);
+      logger.warn('Notification failed.', error);
     }
 
-    res.json({ message: 'Statut de la commande mis à jour avec succès.', order });
+    res.json({ message: 'Order status updated successfully.', order });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error updating order status.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Validation de commande sécurisée.
+// Validate order.
 exports.validateOrder = async (req, res) => {
   const { id } = req.params;
 
-  // Sécurité: Validation de id (MongoDB ID).
   if (!id || !validator.isMongoId(id)) {
-    return res.status(400).json({ message: 'Identifiant commande invalide.' });
+    return res.status(400).json({ message: 'Invalid order ID.' });
   }
 
   try {
     const order = await Order.findByIdAndUpdate(id, { status: 'Confirmée' }, { new: true });
 
-    // Sécurité: Vérifier que la commande existe.
     if (!order) {
-      return res.status(404).json({ message: 'Commande non trouvée.' });
+      return res.status(404).json({ message: 'Order not found.' });
     }
 
-    adminLog(`Commande validée: ${id}`);
-
-    // Notification du service.
     try {
       await axios.post('http://localhost:8000/notify', {
-        message: `La commande ${id} a été validée.`,
+        message: `Order ${id} has been validated.`,
       });
     } catch (error) {
-      adminLog(`Erreur lors de l\'envoi de la notification: ${error.message}`);
+      logger.warn('Notification failed.', error);
     }
 
-    res.json({ message: 'Commande validée avec succès.', order });
+    res.json({ message: 'Order validated successfully.', order });
   } catch (error) {
-    console.error('Erreur lors de la validation de la commande.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error validating order.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Récupération de tous les produits.
+// Get all products.
 exports.getProducts = async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
   } catch (error) {
-    console.error('Erreur lors de la récupération des produits.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error retrieving products.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
 
-// Validation: Mise à jour du stock du produit sécurisée.
+// Update product stock.
 exports.updateProductStock = async (req, res) => {
   const { id } = req.params;
   const { stock } = req.body;
 
-  // Sécurité: Validation de id (MongoDB ID).
   if (!id || !validator.isMongoId(id)) {
-    return res.status(400).json({ message: 'Identifiant produit invalide.' });
+    return res.status(400).json({ message: 'Invalid product ID.' });
   }
 
-  // Sécurité: Validation que stock est fourni.
   if (stock === undefined || stock === null) {
-    return res.status(400).json({ message: 'Le stock est requis.' });
+    return res.status(400).json({ message: 'Stock is required.' });
   }
 
-  // Sécurité: Validation du type de stock (entier).
   if (!Number.isInteger(stock)) {
-    return res.status(400).json({ message: 'Le stock doit être un nombre entier.' });
+    return res.status(400).json({ message: 'Stock must be an integer.' });
   }
 
-  // Sécurité: Validation que le stock est positif et inférieur au maximum.
   if (stock < 0 || stock > 1000000) {
-    return res.status(400).json({ message: 'Le stock doit être entre 0 et 1000000.' });
+    return res.status(400).json({ message: 'Stock must be between 0 and 1000000.' });
   }
 
   try {
     const product = await Product.findByIdAndUpdate(id, { stock }, { new: true });
 
-    // Sécurité: Vérifier que le produit existe.
     if (!product) {
-      return res.status(404).json({ message: 'Produit non trouvé.' });
+      return res.status(404).json({ message: 'Product not found.' });
     }
 
-    adminLog(`Stock du produit mis à jour: ${id} -> ${stock}`);
-
-    // Notification du service.
     try {
       await axios.post('http://localhost:8000/notify', {
-        message: `Le stock du produit ${id} a été mis à jour à ${stock}.`,
+        message: `Product ${id} stock has been updated to ${stock}.`,
       });
     } catch (error) {
-      adminLog(`Erreur lors de l\'envoi de la notification: ${error.message}`);
+      logger.warn('Notification failed.', error);
     }
 
-    res.json({ message: 'Stock du produit mis à jour avec succès.', product });
+    res.json({ message: 'Product stock updated successfully.', product });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du stock.', error);
-    res.status(500).json({ message: 'Une erreur est survenue.' });
+    logger.error('Error updating product stock.', error);
+    res.status(500).json({ message: 'An error occurred.' });
   }
 };
