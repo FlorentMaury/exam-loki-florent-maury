@@ -2,6 +2,7 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import CookieBanner from './components/CookieBanner';
 import ProductList from './pages/ProductList';
 import Cart from './pages/Cart';
 import Order from './pages/Order';
@@ -16,6 +17,7 @@ import ShippingPayment from './pages/ShippingPayment';
 const MainLayout = () => (
   <>
     <Navbar />
+    <CookieBanner />
     <main className="p-4">
       <Outlet />
     </main>
