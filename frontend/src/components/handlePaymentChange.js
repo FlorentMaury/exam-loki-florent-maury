@@ -5,7 +5,8 @@ const PaymentMethodSelection = () => {
   const paymentOptions = [
     'Carte bancaire',
     'PayPal',
-    'Virement',
+    'Virement bancaire',
+    'Crypto-monnaie',
   ];
 
   const handlePaymentChange = (event) => {
