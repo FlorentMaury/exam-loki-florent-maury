@@ -1,0 +1,15 @@
+{
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/build",
+  "framework": "react",
+  "env": {
+    "REACT_APP_API_URL": "@react_app_api_url"
+  },
+  "public": false,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
